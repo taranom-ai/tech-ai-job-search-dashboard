@@ -1,0 +1,405 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tech & AI Job Search Dashboard</title>
+<style>
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --text: #202433;
+  --muted: #737b8c;
+  --border: #e6e8ef;
+  --accent: #6258d9;
+  --accent-light: #eeedff;
+  --green: #16845b;
+  --orange: #b56b17;
+  --red: #c64b55;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header {
+  padding: 28px 5%;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+header h1 { margin: 0 0 6px; font-size: 25px; }
+header p { margin: 0; color: var(--muted); }
+main { max-width: 1400px; margin: auto; padding: 28px 5%; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.stat, .panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.stat span { color: var(--muted); font-size: 13px; }
+.stat strong { display: block; font-size: 29px; margin-top: 8px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.tabs button, button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.tabs button { background: #e9eaf1; color: var(--text); }
+.tabs button.active, .primary {
+  background: var(--accent);
+  color: white;
+}
+.panel { margin-bottom: 20px; }
+.panel h2 { margin: 0 0 16px; font-size: 18px; }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+input, select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+  color: var(--text);
+  min-width: 150px;
+}
+input[type="search"] { flex: 1; }
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  text-align: left;
+  padding: 13px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+th { color: var(--muted); font-weight: 600; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.tag {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.tag.green { background: #e4f5ed; color: var(--green); }
+.tag.orange { background: #fff1df; color: var(--orange); }
+.tag.red { background: #fce9eb; color: var(--red); }
+.hidden { display: none; }
+.empty { color: var(--muted); padding: 25px; text-align: center; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.form-grid input, .form-grid select { width: 100%; }
+@media(max-width: 800px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .table-wrap { overflow-x: auto; }
+}
+@media(max-width: 500px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tech & AI Job Search Dashboard</h1>
+  <p>A centralized workspace for tracking technology companies and career opportunities.</p>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="stat">
+      <span>Target companies</span>
+      <strong id="companyCount">25</strong>
+    </div>
+    <div class="stat">
+      <span>Tracked opportunities</span>
+      <strong id="jobCount">0</strong>
+    </div>
+    <div class="stat">
+      <span>Applications</span>
+      <strong id="appliedCount">0</strong>
+    </div>
+    <div class="stat">
+      <span>Interviews</span>
+      <strong id="interviewCount">0</strong>
+    </div>
+  </section>
+
+  <nav class="tabs">
+    <button class="active" onclick="showTab('companies', this)">Companies</button>
+    <button onclick="showTab('jobs', this)">Opportunities</button>
+  </nav>
+
+  <section id="companies" class="panel">
+    <h2>Company Watchlist</h2>
+    <div class="toolbar">
+      <input type="search" id="companySearch"
+        placeholder="Search companies..." oninput="renderCompanies()">
+      <select id="tierFilter" onchange="renderCompanies()">
+        <option value="">All priorities</option>
+        <option value="Tier 1">Tier 1</option>
+        <option value="Tier 2">Tier 2</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Priority</th>
+            <th>Industry</th>
+            <th>Careers</th>
+          </tr>
+        </thead>
+        <tbody id="companyRows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="jobs" class="panel hidden">
+    <h2>Opportunity Tracker</h2>
+    <form id="jobForm">
+      <div class="form-grid">
+        <input id="jobTitle" placeholder="Job title" required>
+        <input id="jobCompany" placeholder="Company" required>
+        <input id="jobUrl" type="url" placeholder="Job posting URL">
+        <input id="salaryMin" type="number" placeholder="Minimum base salary (CAD)">
+        <input id="salaryMax" type="number" placeholder="Maximum base salary (CAD)">
+        <select id="workModel">
+          <option value="">Work model</option>
+          <option>Hybrid</option>
+          <option>Remote</option>
+          <option>In-person</option>
+          <option>Unverified</option>
+        </select>
+        <select id="location">
+          <option value="">Location eligibility</option>
+          <option>Toronto, Canada</option>
+          <option>Canada Remote</option>
+          <option>Unverified</option>
+          <option>Not eligible</option>
+        </select>
+        <select id="status">
+          <option>New</option>
+          <option>Interested</option>
+          <option>Networking</option>
+          <option>Applied</option>
+          <option>Interviewing</option>
+          <option>Offer</option>
+          <option>Rejected</option>
+          <option>Closed</option>
+        </select>
+      </div>
+      <button class="primary" type="submit">Add opportunity</button>
+    </form>
+
+    <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
+
+    <div class="toolbar">
+      <input type="search" id="jobSearch"
+        placeholder="Search opportunities..." oninput="renderJobs()">
+      <select id="statusFilter" onchange="renderJobs()">
+        <option value="">All statuses</option>
+        <option>New</option>
+        <option>Interested</option>
+        <option>Networking</option>
+        <option>Applied</option>
+        <option>Interviewing</option>
+        <option>Offer</option>
+        <option>Rejected</option>
+        <option>Closed</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Company</th>
+            <th>Salary (CAD)</th>
+            <th>Work model</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="jobRows"></tbody>
+      </table>
+    </div>
+    <p class="empty hidden" id="emptyJobs">No opportunities added yet.</p>
+  </section>
+</main>
+
+<script>
+const companies = [
+  ["Cohere","Tier 1","AI / LLMs","https://cohere.com/careers"],
+  ["Google / Google DeepMind","Tier 1","Technology / AI","https://www.google.com/about/careers/"],
+  ["Microsoft","Tier 1","Technology / AI","https://careers.microsoft.com/"],
+  ["Amazon / AWS","Tier 1","Cloud / AI","https://www.amazon.jobs/"],
+  ["Apple","Tier 1","Consumer technology","https://jobs.apple.com/"],
+  ["Meta","Tier 1","Technology / AI","https://www.metacareers.com/"],
+  ["Stripe","Tier 1","Fintech / Payments","https://stripe.com/jobs"],
+  ["Shopify","Tier 1","Commerce / SaaS","https://www.shopify.com/careers"],
+  ["Salesforce","Tier 1","Enterprise SaaS / AI","https://www.salesforce.com/company/careers/"],
+  ["Adobe","Tier 1","Creative software / AI","https://careers.adobe.com/"],
+  ["Databricks","Tier 1","Data / AI","https://www.databricks.com/company/careers"],
+  ["MongoDB","Tier 1","Developer platform","https://www.mongodb.com/company/careers"],
+  ["Waabi","Tier 1","Autonomous systems / AI","https://waabi.ai/careers"],
+  ["1Password","Tier 1","Cybersecurity / SaaS","https://1password.com/jobs"],
+  ["Wealthsimple","Tier 1","Fintech","https://www.wealthsimple.com/en-ca/careers"],
+  ["NVIDIA","Tier 2","AI infrastructure","https://www.nvidia.com/en-us/about-nvidia/careers/"],
+  ["Snowflake","Tier 2","Data cloud / AI","https://careers.snowflake.com/"],
+  ["Tenstorrent","Tier 2","AI hardware","https://tenstorrent.com/careers/"],
+  ["Thomson Reuters","Tier 2","Information services / AI","https://careers.thomsonreuters.com/"],
+  ["Wayfair","Tier 2","E-commerce / Technology","https://www.wayfair.com/careers"],
+  ["Cisco","Tier 2","Enterprise technology","https://jobs.cisco.com/"],
+  ["IBM","Tier 2","Enterprise technology / AI","https://www.ibm.com/careers"],
+  ["HubSpot","Tier 2","SaaS / Marketing technology","https://www.hubspot.com/careers"],
+  ["Air","Tier 2","Creative operations SaaS","https://air.inc/careers"],
+  ["Ada","Tier 2","AI customer experience","https://www.ada.cx/careers"]
+];
+
+let jobs = JSON.parse(localStorage.getItem("jobDashboardJobs") || "[]");
+
+function showTab(id, button) {
+  document.querySelectorAll("main > section.panel").forEach(el =>
+    el.classList.add("hidden")
+  );
+  document.getElementById(id).classList.remove("hidden");
+  document.querySelectorAll(".tabs button").forEach(el =>
+    el.classList.remove("active")
+  );
+  button.classList.add("active");
+}
+
+function renderCompanies() {
+  const query = document.getElementById("companySearch").value.toLowerCase();
+  const tier = document.getElementById("tierFilter").value;
+
+  const filtered = companies.filter(c =>
+    c[0].toLowerCase().includes(query) &&
+    (!tier || c[1] === tier)
+  );
+
+  document.getElementById("companyRows").innerHTML = filtered.map(c => `
+    <tr>
+      <td><strong>${escapeHTML(c[0])}</strong></td>
+      <td><span class="tag">${c[1]}</span></td>
+      <td>${escapeHTML(c[2])}</td>
+      <td><a href="${c[3]}" target="_blank" rel="noopener noreferrer">Careers page ↗</a></td>
+    </tr>
+  `).join("");
+
+  document.getElementById("companyCount").textContent = companies.length;
+}
+
+function renderJobs() {
+  const query = document.getElementById("jobSearch").value.toLowerCase();
+  const status = document.getElementById("statusFilter").value;
+
+  const filtered = jobs.filter(j =>
+    (j.title + " " + j.company).toLowerCase().includes(query) &&
+    (!status || j.status === status)
+  );
+
+  document.getElementById("jobRows").innerHTML = filtered.map(j => `
+    <tr>
+      <td>${escapeHTML(j.title)}
+        ${j.url ? `<br><a href="${safeURL(j.url)}" target="_blank" rel="noopener noreferrer">View posting ↗</a>` : ""}
+      </td>
+      <td>${escapeHTML(j.company)}</td>
+      <td>${j.min || j.max
+        ? `${j.min ? Number(j.min).toLocaleString() : "—"} – ${j.max ? Number(j.max).toLocaleString() : "—"}`
+        : "Not listed"}</td>
+      <td>${escapeHTML(j.model || "Unverified")}</td>
+      <td>${escapeHTML(j.location || "Unverified")}</td>
+      <td><span class="tag ${j.status === "Offer" ? "green" : j.status === "Rejected" ? "red" : ""}">${escapeHTML(j.status)}</span></td>
+      <td><button onclick="deleteJob('${j.id}')">Delete</button></td>
+    </tr>
+  `).join("");
+
+  document.getElementById("emptyJobs").classList.toggle("hidden", filtered.length > 0);
+  updateStats();
+}
+
+document.getElementById("jobForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  const job = {
+    id: crypto.randomUUID(),
+    title: document.getElementById("jobTitle").value.trim(),
+    company: document.getElementById("jobCompany").value.trim(),
+    url: document.getElementById("jobUrl").value.trim(),
+    min: document.getElementById("salaryMin").value,
+    max: document.getElementById("salaryMax").value,
+    model: document.getElementById("workModel").value,
+    location: document.getElementById("location").value,
+    status: document.getElementById("status").value
+  };
+
+  jobs.push(job);
+  saveJobs();
+  event.target.reset();
+  renderJobs();
+});
+
+function deleteJob(id) {
+  jobs = jobs.filter(j => j.id !== id);
+  saveJobs();
+  renderJobs();
+}
+
+function saveJobs() {
+  localStorage.setItem("jobDashboardJobs", JSON.stringify(jobs));
+}
+
+function updateStats() {
+  document.getElementById("jobCount").textContent = jobs.length;
+  document.getElementById("appliedCount").textContent =
+    jobs.filter(j => j.status === "Applied").length;
+  document.getElementById("interviewCount").textContent =
+    jobs.filter(j => j.status === "Interviewing").length;
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function safeURL(value) {
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : "#";
+  } catch {
+    return "#";
+  }
+}
+
+renderCompanies();
+renderJobs();
+</script>
+</body>
+</html>
